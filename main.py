@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from colorama import init as colorama_init
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
 
 colorama_init()
 
@@ -21,13 +21,13 @@ class WeatherConditions():
         coord_request = f"https://forecast.weather.gov/MapClick.php?lon={long}&lat={lat}"
         res = requests.get(coord_request)
         if(res.status_code != 200):
+            print("Error in coordinates or data!")
             return False
-    
-        soup = BeautifulSoup(res.text, "html.parser")
-        self.set_basic_conds(soup)
-        self.set_detailed_conds(soup)
-        self.set_hazards(soup)
-
+        else:
+            soup = BeautifulSoup(res.text, "html.parser")
+            self.set_basic_conds(soup)
+            self.set_detailed_conds(soup)
+            self.set_hazards(soup)
         return True
 
     def set_basic_conds(self, soup : BeautifulSoup):
@@ -59,7 +59,8 @@ class WeatherConditions():
         for hazard in hazard_list:
             if hazard is not None:
                 hazard_link = hazard.get("href")
-                self.hazards.add(f"{hazard.text} \nMore Information: {Fore.BLUE}{Back.WHITE}https://forecast.weather.gov/{hazard_link}")
+                hazard_link = hazard_link.replace(" ", "%20")
+                self.hazards.add(f"{hazard.text} \nMore Information: {Fore.BLUE}https://forecast.weather.gov/{hazard_link}")
 
     def toFormattedString(self) -> str:
         result = ""
@@ -71,15 +72,18 @@ class WeatherConditions():
             result = result + f"{Fore.LIGHTBLUE_EX}{key}: {self.detailed_data[key]}{Style.RESET_ALL}\n"
         result = result + "\n"
         for hazard in self.hazards:
-            result = result + f"{Fore.YELLOW}WARNING: {hazard}\n\n{Style.RESET_ALL}"
+            result = result + f"{Fore.YELLOW}WARNING: {hazard}{Style.RESET_ALL}\n\n"
     
         return result
 
 def main():
+    print("Enter a coordinate in the United states.")
+    latitude = input("Enter latitude (for South, use negative latitude): ")
+    longitude = input("Enter longitude (for West, use negative longitude): ")
+
     colorama_init()
     weather = WeatherConditions()
-    weather.update_weather(long=-77.4109, lat=39.4142)
-
-    print(weather.toFormattedString())
+    if(weather.update_weather(lat=latitude, long=longitude)):
+        print(weather.toFormattedString())
 
 main()
